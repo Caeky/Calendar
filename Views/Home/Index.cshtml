@@ -1,0 +1,259 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Hoşgeldiniz!</h2>
+<div id="calender"></div>
+
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title"><span id="eventTitle"></span></h4>
+            </div>
+            <div class="modal-body">
+                <p id="pDetails"></p>
+            </div>          
+            <div class="modal-footer">
+                <button id="btnDelete" class="btn btn-default btn-sm pull-right">
+                    <span class="glyphicon glyphicon-remove"></span> Sil
+                </button>
+                <button id="btnEdit" class="btn btn-default btn-sm pull-right" style="margin-right:5px;">
+                    <span class="glyphicon glyphicon-pencil"></span> Düzenle
+                </button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="myModalSave" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal">
+                    <input type="hidden" id="hdEventID" value="0" />
+                    <div class="form-group">
+                        <label>Plan Adı</label>
+                        <input type="text" id="txtName" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Başlangıç</label>
+                        <div class="input-group date" id="dtp1">
+                            <input type="text" id="txtStart" class="form-control" />
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-group" id="divEndDate">
+                        <label>Bitiş</label>
+                        <div class="input-group date" id="dtp2">
+                            <input type="text" id="txtEnd" class="form-control" />
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button" id="btnSave" class="btn btn-success">Kaydet</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.min.css" rel="stylesheet" />
+<link href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.print.css" rel="stylesheet" media="print" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+
+@section Scripts{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.min.js"></script>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+
+   
+
+    <script>
+        $(document).ready(function () {
+
+            var events = [];
+            var selectedEvent = null;
+            FetchEventAndRenderCalendar();
+            function FetchEventAndRenderCalendar() {
+                $.ajax({
+                    type: "GET",
+                    url: "/home/GetEvents",
+                    success: function (data) {
+                        $.each(data, function (i, v) {
+                            events.push({
+                                eventId: v.EventId,
+                                title: v.EventName,
+                                start: moment(v.StartTime),
+                                end: moment(v.EndTime)
+
+                            });
+                        })
+
+                        GenerateCalender(events);
+                    },
+                    error: function (error) {
+                        alert('İşlem başarısız oldu.');
+                    }
+                })
+
+
+            }
+            function GenerateCalender(events) {
+                $('#calender').fullCalendar('destroy');
+                $('#calender').fullCalendar({
+                        monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+                        monthNamesShort: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+                        dayNames: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+                        dayNamesShort: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+                        editable: true,
+                        buttonText: {
+                            today: 'Bugün',
+                            month: 'Ay',
+                            week: 'Hafta',
+                            day: 'Gün'
+                        },
+                    contentHeight: 420,
+                    defaultDate: new Date(),
+                    timeFormat: 'h(:mm)a',
+                    header: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'month,basicWeek,basicDay'
+
+                    },
+                    eventLimit: true,
+                    eventColor: '#b19cd9',
+                    events: events,
+                    eventClick: function (calEvent, jsEvent, view) {
+                        selectedEvent = calEvent;
+                        $('#myModal #eventTitle').text(calEvent.title);
+                        var $description = $('<div />');
+                        $description.append($('<p />').html('<b>Başlangıç:</b>' + calEvent.start.format("DD-MMM-YYYY HH:mm a")));
+                        if (calEvent.end != null) {
+                            $description.append($('<p/>').html('<b>Bitiş:</b>' + calEvent.end.format("DD-MMM-YYYY HH:mm a")));
+                        }
+                        $('#myModal #pDetails').empty().html($description);
+
+                        $('#myModal').modal();
+                    },
+                    selectable: true,
+                    select: function (start, end) {
+                        selectedEvent = {
+                            eventId: 0,
+                            title: '',
+                            start: start,
+                            end: end,
+                        };
+                        openAddEditForm();
+                        $('#calender').fullCalendar('unselect');
+
+                    },
+                    editable: true,
+                    eventDrop: function (event) {
+                        var data = {
+                            EventId: event.eventId,
+                            Name: event.title,
+                            StartTime: event.start.format('DD/MM/YYYY HH:mm A'),
+                            EndTime: event.end.format('DD/MM/YYYY HH:mm A')
+                        };
+                        SaveEvent(data);
+                    }
+                })
+            }
+            $('#btnEdit').click(function () {
+                openAddEditForm();
+            })
+            $('#btnDelete').click(function () {
+                if (selectedEvent != null && confirm('Silmek istiyor musunuz?')) {
+                    $.ajax({
+                        type: "POST",
+                        url: '/home/DeleteEvent',
+                        data: { 'eventId': selectedEvent.eventId },
+                        success: function (data) {
+                            if (data.status) {
+                                FetchEventAndRenderCalendar();
+                                $('#myModal').modal('hide');
+                            }
+                        },
+                        error: function () {
+                            alert('İşlem başarısız oldu.');
+                        }
+                    })
+                }
+            })
+            $('#dtp1,#dtp2').datetimepicker({
+                format: 'DD/MM/YYYY HH:mm A'
+            });
+
+            function openAddEditForm() {
+                if (selectedEvent != null) {
+                    $('#hdEventID').val(selectedEvent.eventId);
+                    $('#txtName').val(selectedEvent.name);
+                    $('#txtStart').val(selectedEvent.start.format('DD/MM/YYYY HH:mm A'));
+                    $('#txtEnd').val(selectedEvent.end.format('DD/MM/YYYY HH:mm A'));
+
+                }
+                $('#myModal').modal('hide');
+                $('#myModalSave').modal();
+            }
+            $('#btnSave').click(function () {
+                if ($('#txtName').val().trim() == "") {
+                    alert('Lütfen plan ismi giriniz.');
+                    return;
+                }
+                if ($('#txtStart').val().trim() == "") {
+                    alert('Başlangıç tarihi zorunludur.');
+                    return;
+                }
+                if ($('#txtEnd').val().trim() == "") {
+                    alert('Bitiş tarihi zorunludur.');
+                    return;
+                }
+                else {
+                    var startDate = moment($('#txtStart').val(), "DD/MM/YYYY HH:mm A").toDate();
+                    var endDate = moment($('#txtEnd').val(), "DD/MM/YYYY HH:mm A").toDate();
+                    if (startDate > endDate) {
+                        alert('Geçersiz tarih.');
+                        return;
+                    }
+                }
+
+                var data = {
+                    EventId: $('#hdEventID').val(),
+                    EventName: $('#txtName').val().trim(),
+                    StartTime: $('#txtStart').val().trim(),
+                    EndTime: $('#txtEnd').val().trim()
+                }
+                SaveEvent(data);
+            })
+            function SaveEvent(data) {
+                $.ajax({
+                    type: "POST",
+                    url: '/home/SaveEvent',
+                    data: data,
+                    success: function (data) {
+                        if (data.status) {
+                            FetchEventAndRenderCalendar();
+                            $('#myModalSave').modal('hide');
+                        }
+                    },
+                    error: function () {
+                        alert('İşlem başarısız oldu.');
+                    }
+
+                })
+            }
+        })
+    </script>
+}
